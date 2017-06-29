@@ -37,6 +37,7 @@ function noop(){}
  */
 
 function jsonp(url, opts, fn){
+  // opts 可选
   if ('function' == typeof opts) {
     fn = opts;
     opts = {};
@@ -47,6 +48,7 @@ function jsonp(url, opts, fn){
 
   // use the callback name that was passed if one was provided.
   // otherwise generate a unique name by incrementing our counter.
+  // jsonp 函数形成一个闭包，保持引用 count
   var id = opts.name || (prefix + (count++));
 
   var param = opts.param || 'callback';
@@ -56,7 +58,7 @@ function jsonp(url, opts, fn){
   var script;
   var timer;
 
-
+  // setTimeout 实现 timeout
   if (timeout) {
     timer = setTimeout(function(){
       cleanup();
@@ -66,7 +68,12 @@ function jsonp(url, opts, fn){
 
   function cleanup(){
     if (script.parentNode) script.parentNode.removeChild(script);
-    window[id] = noop;
+    // window[id] = noop;
+    try {
+      delete window[id];
+    } catch (err) {
+      window[id] = undefined;
+    }
     if (timer) clearTimeout(timer);
   }
 
@@ -76,13 +83,16 @@ function jsonp(url, opts, fn){
     }
   }
 
+  // 怎样避免创建过多全局函数？
   window[id] = function(data){
     debug('jsonp got', data);
+    console.log('generatedFunction: ', id);
     cleanup();
     if (fn) fn(null, data);
   };
 
   // add qs component
+  // param 自定义，理论上也需要 encode。开发者不会自找麻烦吧？
   url += (~url.indexOf('?') ? '&' : '?') + param + '=' + enc(id);
   url = url.replace('?&', '?');
 
